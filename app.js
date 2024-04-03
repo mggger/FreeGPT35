@@ -5,7 +5,7 @@ const https = require("https");
 const { randomUUID } = require("crypto");
 
 // Constants for the server and API configuration
-const port = 3040;
+const port = 80;
 const baseUrl = "https://chat.openai.com";
 const apiUrl = `${baseUrl}/backend-api/conversation`;
 const refreshInterval = 60000; // Interval to refresh token in ms
@@ -28,6 +28,24 @@ function GenerateCompletionId(prefix = "cmpl-") {
   }
 
   return prefix;
+}
+
+function verifyBearerToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  const expectedBearerToken = "Bearer 3edc4rfv%TGB^YHNasd"; // 这里设置你期望的Bearer令牌值
+
+  // 检查Authorization头部是否符合期望
+  if (!authHeader || authHeader !== expectedBearerToken) {
+    return res.status(400).send({
+      status: false,
+      error: {
+        message: "Invalid or missing Authorization token.",
+        type: "authentication_error",
+      },
+    });
+  }
+
+  next(); // 如果校验通过，继续执行后续的处理流程
 }
 
 async function* chunksToLines(chunksAsync) {
@@ -266,7 +284,7 @@ app.use(bodyParser.json());
 app.use(enableCORS);
 
 // Route to handle POST requests for chat completions
-app.post("/v1/chat/completions", handleChatCompletion);
+app.post("/v1/chat/completions", verifyBearerToken, handleChatCompletion);
 
 // 404 handler for unmatched routes
 app.use((req, res) =>
